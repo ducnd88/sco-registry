@@ -61,7 +61,7 @@
     dest: '/usr/local/bin'
     remote_src: yes
     creates: /usr/local/bin/kubectl
-  when: ocp_client_stat.stat.exists
+  when: ocp_client_stat.stat.exists or not ret_client.failed
 
 - name: Extract OCP installer tool tar
   unarchive:
@@ -69,4 +69,4 @@
     dest: '/usr/local/bin'
     remote_src: yes
     creates: /usr/local/bin/openshift-install
-  when: ocp_installer_stat.stat.exists
+  when: ocp_installer_stat.stat.exists or not ret_installer.failed
