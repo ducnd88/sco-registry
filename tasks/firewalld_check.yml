@@ -1,0 +1,25 @@
+---
+
+- name: Check if firewall service is enabled
+  command: systemctl is-enabled firewalld
+  register: firewall_enabled
+
+- name: Get active firewall zones
+  shell: firewall-cmd --get-active-zones|grep -v '^ '
+  register: get_active_zones_result
+
+- name: define firewall zones as a variable
+  set_fact:
+    active_zones: "{{ get_active_zones_result.stdout_lines | list }}"
+  when: not get_active_zones_result.failed
+
+- name: Get default firewall zone
+  command: firewall-cmd --get-default-zone
+  register: get_default_zone_result
+
+- name: define default firewall zone to variable
+  set_fact:
+    default_zone: "{{ get_default_zone_result.stdout }}"
+  when: not get_default_zone_result.failed
+
+
