@@ -1,0 +1,91 @@
+---
+
+- name: install podman and httpd-tools
+  package:
+    name:
+      - podman
+      - httpd-tools
+    state: present
+
+- include_tasks: firewalld_check.yml
+
+- name: Open firewall for registry port {{ local_registry_port }}
+  command: firewall-cmd --add-port={{ local_registry_port }}/tcp --zone={{ default_zone }} --permanent
+  when: firewall_enabled.stdout == "enabled"
+- command: firewall-cmd --reload
+  when: firewall_enabled.stdout == "enabled"
+
+- name: Create {{ local_registry_root }}/certs
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ local_registry_root }}/certs"
+    - "{{ local_registry_root }}/download"
+
+- name: Move certificates to {{ local_registry_root }}/certs
+  shell: >
+    mv -f {{ root_ca_name }}.* {{ server_cert_name }}.*
+    {{ local_registry_root }}/certs/
+- command: restorecon -rFvv {{ local_registry_root }}/certs/*
+
+- name: create registry account
+  command: >
+    htpasswd -bBc {{ local_registry_root }}/htpasswd
+    {{ registry_username }} {{ registry_password }}
+
+- name: Check if {{ local_registry_name }} container is running
+  command: podman ps -a -f name={{ local_registry_name }} --format {% raw %}"{{.Names}}"{% endraw %}
+  register: run_result
+
+- name: Remove existing {{ local_registry_name }} container
+  command: podman rm -f {{ local_registry_name }}
+  when: run_result.stdout == local_registry_name
+
+- name: podman login to {{ registry_image_registry }}
+  command: |
+    podman login -u {{ dockerio_username }} -p {{ dockerio_password }} {{ registry_image_registry }}
+  when: dockerio_username != 'yourid'
+  register: login_result
+  failed_when: login_result.stdout != "Login Succeeded!"
+
+- name: podman pull {{ registry_image }}
+  command: |
+    podman pull {{ registry_image }}
+  when: dockerio_username != 'yourid'
+  register: pull_result
+  failed_when: '"Storing signatures" not in pull_result.stderr'
+
+- name: podman load docker-registry.tar
+  command: |
+    podman load -i {{ local_registry_root }}/download/docker-registry.tar
+  when: dockerio_username == 'yourid'
+  register: load_result
+  failed_when: '"Storing signatures" not in load_result.stderr'
+
+- name: podman run {{ local_registry_name }}
+  command: >
+    podman run --name {{ local_registry_name }} -d
+    --restart unless-stopped
+    -p {{ local_registry_port }}:{{ local_registry_port }}
+    -v {{ local_registry_root }}:{{ local_registry_container_path }}:z
+    -e REGISTRY_AUTH_HTPASSWD_PATH={{ local_registry_container_path }}/htpasswd
+    -e REGISTRY_AUTH=htpasswd
+    -e REGISTRY_AUTH_HTPASSWD_REALM=Registry
+    -e REGISTRY_HTTP_SECRET=ALongRandomSecretForRegistry 
+    -e REGISTRY_HTTP_TLS_CERTIFICATE={{ local_registry_container_path }}/certs/{{ server_cert_name }}.cert
+    -e REGISTRY_HTTP_TLS_KEY={{ local_registry_container_path }}/certs/{{ server_cert_name }}.key
+    {{ registry_image }}
+
+- name: Check if registry service is ready
+  uri:
+    url: "https://{{ local_registry_uri }}/v2/_catalog"
+    method: GET
+    user: '{{ registry_username }}'
+    password: '{{ registry_password }}'
+    # FIXME: Unfortunately client_cert didn't work
+    #
+    #    client_cert: '{{ local_registry_root }}/certs/{{ server_cert_name }}.cert'
+    validate_certs: false
+  register: service_result
+  failed_when: '"repositories" not in service_result.json'
