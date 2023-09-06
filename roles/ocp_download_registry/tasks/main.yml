@@ -5,6 +5,10 @@
     name: "{{ utility_packages }}"
     state: present
 
+- name: what inventory_hostname
+  debug:
+    msg: '{{ inventory_hostname }}'
+
 - include_tasks: "{{ loop_item }}"
   vars:
     iso_download: true
