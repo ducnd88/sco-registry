@@ -1,0 +1,4 @@
+---
+
+ping_target: '1.1.1.1'
+dns_target: 'google.com'
