@@ -1,0 +1,7 @@
+---
+
+- name: Creat registry
+  hosts: registry
+  roles:
+    - roles/rh_subscribe
+    - roles/ocp_download_registry
