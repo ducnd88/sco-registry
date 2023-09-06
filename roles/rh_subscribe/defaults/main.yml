@@ -1,0 +1,5 @@
+---
+
+rh_username: yourid
+rh_password: yourpass
+subscription_timeout: 300
