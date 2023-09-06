@@ -1,0 +1,11 @@
+---
+
+- name: Check ping to Internet
+  command: ping -c 1 -w 1 {{ ping_target }}
+  register: ping_result
+  failed_when: ping_result.rc != 0
+
+- name: Check DNS for Internet
+  command: nslookup {{ dns_target }}
+  register: dns_result
+  failed_when: dns_result.rc != 0
