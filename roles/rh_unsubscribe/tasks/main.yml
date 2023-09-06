@@ -1,0 +1,10 @@
+---
+
+- name: check subscription
+  command: subscription-manager identity
+  register: result
+  failed_when: result.rc > 1    # rc=1 means not registered
+
+- name: Unsubscribe Redhat
+  command: subscription-manager unregister
+  when: result.rc == 0
