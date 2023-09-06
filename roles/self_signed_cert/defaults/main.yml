@@ -1,0 +1,4 @@
+---
+
+root_ca_name: 'rootCA'
+server_cert_name: 'server_ssl'
