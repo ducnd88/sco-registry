@@ -1,0 +1,20 @@
+---
+
+- name: check subscription
+  command: subscription-manager identity
+  register: result
+  failed_when: result.rc > 1    # rc=1 means not registered
+
+- name: subscribe to Redhat on {{ hostname }}
+  expect:
+    timeout: "{{ subscription_timeout }}"
+    command: subscription-manager register --auto-attach
+    responses:
+      'Username: ': "{{ rh_username }}"
+      'Password: ': "{{ rh_password }}"
+  when: result.rc == 1 and 'not yet registered' in result.stderr
+  no_log: true
+
+- name: check repositories
+  command: dnf repolist
+  when: result.rc == 1 and 'not yet registered' in result.stderr
