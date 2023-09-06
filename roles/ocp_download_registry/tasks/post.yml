@@ -1,0 +1,70 @@
+---
+
+- name: Move binaries to {{ local_registry_root }}/download
+  shell: >
+    mv -f {{ item }} {{ local_registry_root }}/download/
+  with_items:
+    - "{{ ocp_client_tar }}"
+    - "{{ ocp_installer_tar }}"
+    - "{{ rhcos_iso }}"
+    - "mirroring-{{ timestamp }}.log"
+- command: restorecon -rFvv {{ local_registry_root }}/download
+
+- name: Stop {{ local_registry_name }} container
+  command: podman stop {{ local_registry_name }}
+
+- name: Save {{ local_registry_name }} container image
+  command: >
+    podman save {{ registry_image }}
+    -o {{ local_registry_root }}/download/docker-registry.tar
+
+- name: remove certs and htpasswd
+  command: >
+    rm -rf {{ local_registry_root }}/certs
+- command: >
+    rm -f {{ local_registry_root }}/htpasswd
+
+- set_fact:
+    bundle_timeout: 1200
+
+- name: Make bundle with {{ local_registry_root }}
+  archive:
+    path: "{{ local_registry_root }}"
+    dest: "./openshift-{{ ocp_version }}-registry-{{ timestamp }}.tar"
+    format: tar
+  async: '{{ bundle_timeout }}'
+  poll: 0
+  register: ret_bundle
+
+- name: wait for archiving openshift-{{ ocp_version }}-registry-{{ timestamp }}.tar
+  async_status:
+    jid: '{{ ret_bundle.ansible_job_id }}'
+  register: job_result
+  until: job_result.finished
+  retries: "{{ (bundle_timeout/10)|int|round }}"
+  delay: 10
+  failed_when: 'job_result.stderr is defined'
+
+- name: Downloading start (takes over 5min)
+  fetch:
+    src: "openshift-{{ ocp_version }}-registry-{{ timestamp }}.tar"
+    dest: "/tmp"
+  poll: 10
+
+- name: shutdown {{ hostname }} VM
+  become: true
+  delegate_to: localhost
+  virt:
+    name: "{{ hostname }}"
+    state: shutdown
+
+- name: Wait for {{ hostname }} shutdown
+  become: true
+  delegate_to: localhost
+  virt:
+    name: "{{ hostname }}"
+    command: status
+  register: vm_status
+  until: vm_status.status is defined and vm_status.status == 'shutdown'
+  retries: 60
+  delay: 10
