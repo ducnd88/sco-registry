@@ -1,0 +1,10 @@
+---
+
+utility_packages:
+  - jq
+  - curl
+  - wget
+pullsecret_bundle: pullsecret_bundle.json
+ocp_product_repo: openshift-release-dev
+ocp_release_name: ocp-release
+mirroring_timeout: 600
