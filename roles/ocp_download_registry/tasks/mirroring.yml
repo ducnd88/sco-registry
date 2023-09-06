@@ -1,0 +1,28 @@
+---
+
+- name: Start OpenShift repository mirroring
+  command: >
+    oc adm release mirror -a {{ pullsecret_bundle }}
+    --from=quay.io/{{ ocp_product_repo }}/{{ ocp_release_name }}:{{ ocp_version }}-x86_64
+    --to={{ local_registry_uri }}/{{ local_repository_name }}
+    --to-release-image={{ local_registry_uri }}/{{ local_repository_name }}:{{ ocp_version }}-x86_64
+  async: "{{ mirroring_timeout }}"
+  poll: 0
+  register: async_mirror
+
+- name: wait for mirroring completion up to {{ (mirroring_timeout/60)|int|round }} minutes
+  async_status:
+    jid: '{{ async_mirror.ansible_job_id }}'
+  register: job_result
+  until: job_result.finished
+  retries: "{{ (mirroring_timeout/10)|int|round }}"
+  delay: 10
+  failed_when: 'job_result.stderr is defined and
+        "Mirroring completed in" not in job_result.stderr'
+
+- set_fact:
+    timestamp: "{{ now(fmt='%Y%m%d-%H%M%S') }}"
+
+- copy:
+    content: "{{ job_result.stdout }}"
+    dest: "./mirroring-{{ timestamp }}.log"
