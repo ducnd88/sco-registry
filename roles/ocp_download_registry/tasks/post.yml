@@ -50,21 +50,3 @@
     src: "openshift-{{ ocp_version }}-registry-{{ timestamp }}.tar"
     dest: "/tmp"
   poll: 10
-
-- name: shutdown {{ hostname }} VM
-  become: true
-  delegate_to: localhost
-  virt:
-    name: "{{ hostname }}"
-    state: shutdown
-
-- name: Wait for {{ hostname }} shutdown
-  become: true
-  delegate_to: localhost
-  virt:
-    name: "{{ hostname }}"
-    command: status
-  register: vm_status
-  until: vm_status.status is defined and vm_status.status == 'shutdown'
-  retries: 60
-  delay: 10
