@@ -2,7 +2,7 @@
 
 - name: Get stat of OCP client tool tar
   stat:
-    path: "/root/{{ ocp_client_tar }}"
+    path: "./{{ ocp_client_tar }}"
   register: ocp_client_stat
 
 - name: Download OCP client tool tar
@@ -10,7 +10,7 @@
     get_url_timeout: 50
   get_url:
     url: "{{ ocp_source_url }}/{{ ocp_client_tar }}"
-    dest: "/root/{{ ocp_client_tar }}"
+    dest: "./{{ ocp_client_tar }}"
     mode: '0644'
     force: 'no'
     timeout: '{{ get_url_timeout }}'
@@ -21,7 +21,7 @@
 
 - name: Get stat of OCP installer tool tar
   stat:
-    path: "/root/{{ ocp_installer_tar }}"
+    path: "./{{ ocp_installer_tar }}"
   register: ocp_installer_stat
 
 - name: Download OCP installer tool tar
@@ -29,7 +29,7 @@
     get_url_timeout: 100
   get_url:
     url: "{{ ocp_source_url }}/{{ ocp_installer_tar }}"
-    dest: "/root/{{ ocp_installer_tar }}"
+    dest: "./{{ ocp_installer_tar }}"
     mode: '0644'
     force: 'no'
     timeout: '{{ get_url_timeout }}'
@@ -40,7 +40,7 @@
 
 - name: Get stat of RHCOS iso
   stat:
-    path: "/root/{{ rhcos_iso }}"
+    path: "./{{ rhcos_iso }}"
   register: rhcos_iso_stat
 
 - name: Download RHCOS iso
@@ -48,7 +48,7 @@
     get_url_timeout: 180
   get_url:
     url: "{{ rhcos_url }}/{{ rhcos_iso }}"
-    dest: "/root/{{ rhcos_iso }}"
+    dest: "./{{ rhcos_iso }}"
     mode: '0644'
     force: 'no'
     timeout: '{{ get_url_timeout }}'
@@ -57,7 +57,7 @@
 
 - name: Extract OCP client tool tar
   unarchive:
-    src: '/root/{{ ocp_client_tar }}'
+    src: './{{ ocp_client_tar }}'
     dest: '/usr/local/bin'
     remote_src: yes
     creates: /usr/local/bin/kubectl
@@ -65,7 +65,7 @@
 
 - name: Extract OCP installer tool tar
   unarchive:
-    src: '/root/{{ ocp_installer_tar }}'
+    src: './{{ ocp_installer_tar }}'
     dest: '/usr/local/bin'
     remote_src: yes
     creates: /usr/local/bin/openshift-install
