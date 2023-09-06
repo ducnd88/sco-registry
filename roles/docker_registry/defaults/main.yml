@@ -1,0 +1,14 @@
+---
+
+dockerio_username: yourid
+dockerio_password: yourpass
+registry_image_registry: docker.io
+registry_image: "{{ registry_image_registry }}/library/registry:2"
+
+registry_username: opuser
+registry_password: samsung
+local_registry_name: docker-registry
+local_registry_root: /opt/registry
+local_registry_container_path: /var/lib/registry
+local_registry_port: 5000
+local_registry_uri: "{{ hostname }}:{{ local_registry_port }}"
