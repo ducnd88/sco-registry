@@ -1,0 +1,21 @@
+---
+
+- name: install utility packages
+  package:
+    name: "{{ utility_packages }}"
+    state: present
+
+- include_tasks: "{{ loop_item }}"
+  vars:
+    iso_download: true
+  loop:
+    - downloading_ocp_tools.yml
+    - prep_pullsecret.yml
+    - mirroring.yml
+  loop_control:
+    loop_var: loop_item
+
+- include_role:
+    name: roles/rh_unsubscribe
+
+- include_tasks: post.yml
