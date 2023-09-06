@@ -1,0 +1,14 @@
+---
+
+- name: restart docker-registry
+  command: podman restart docker-registry
+
+- name: stop docker-registry
+  command: podman stop docker-registry
+
+- name: remove docker-registry
+  command: podman rm -f docker-registry
+  ignore_errors: yes
+
+- name: start docker-registry
+  command: podman start docker-registry
