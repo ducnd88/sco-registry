@@ -1,0 +1,20 @@
+---
+
+clustername: "{{ 'unknown' if cluster is not defined else cluster }}"
+domainname : "{{ 'unknown' if domain  is not defined else domain  }}"
+qcow_image_path: "/var/lib/libvirt/images"
+os_dvd_location: "{{ qcow_image_path }}/rhel-8.4-x86_64-dvd.iso"
+ignition_port: 8080
+bastion_name: "{{ groups.bastions[0] }}"
+bastion_ip: "{{ hostvars[bastion_name].ansible_host }}"
+bastion_ipv6: "2001:db8:fe::29" # TODO : replace hard-coded address
+
+cpu: "{{ hostvars[inventory_hostname].cpu }}"
+ram: "{{ hostvars[inventory_hostname].ram }}"
+disk: "{{ hostvars[inventory_hostname].disk }}"
+network: "{{ hostvars[inventory_hostname].network }}"
+hostname: "{{ inventory_hostname }}"
+
+# Only Airgap install with perf6 supports it
+use_ipv4: true
+use_ipv6: false
