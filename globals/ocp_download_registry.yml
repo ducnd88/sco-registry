@@ -1,0 +1,12 @@
+---
+
+ocp_version: '4.12.10'
+ocp_source_url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{{ ocp_version }}"
+ocp_client_tar: "openshift-client-linux-{{ ocp_version }}.tar.gz"
+ocp_installer_tar: "openshift-install-linux-{{ ocp_version }}.tar.gz"
+pullsecret_path: "{{ playbook_dir }}/../minepuff_pullSecret"
+local_repository_name: "openshift"
+
+rhcos_version: '4.12.10'
+rhcos_url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/{{ rhcos_version.split('.')[0:2] | join('.') }}/{{ rhcos_version }}"
+rhcos_iso: "rhcos-{{ rhcos_version }}-x86_64-live.x86_64.iso"
