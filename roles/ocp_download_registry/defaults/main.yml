@@ -7,4 +7,4 @@ utility_packages:
 pullsecret_bundle: pullsecret_bundle.json
 ocp_product_repo: openshift-release-dev
 ocp_release_name: ocp-release
-mirroring_timeout: 600
+mirroring_timeout: 2000
