@@ -1,0 +1,30 @@
+{{- if eq .Values.apigateway.controller.kind "Deployment" }}
+{{- if .Values.apigateway.controller.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    component: "{{ .Values.apigateway.controller.name }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.controller.fullname" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: {{ template "apigateway.controller.fullname" . }}
+  minReplicas: {{ .Values.apigateway.controller.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.apigateway.controller.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.apigateway.controller.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.apigateway.controller.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}
+{{- end }}

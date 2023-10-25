@@ -1,0 +1,22 @@
+{{- if and .Values.apigateway.clusterRbac.create .Values.apigateway.controller.scope.enabled -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+    app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.fullname" . }}-scoped
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+{{- end -}}

@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: Service
+metadata:
+{{- if .Values.apigateway.controller.service.annotations }}
+  annotations:
+  {{- range $key, $value := .Values.apigateway.controller.service.annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
+  labels:
+{{- if .Values.apigateway.controller.service.labels }}
+{{ toYaml .Values.apigateway.controller.service.labels | indent 4 }}
+{{- end }}
+    app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+    app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    component: "{{ .Values.apigateway.controller.name }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.controller.fullname" . }}-sb
+spec:
+  clusterIP: "{{ .Values.apigateway.controller.service.clusterIP }}"
+{{- if .Values.apigateway.controller.service.externalIPs }}
+  externalIPs:
+{{ toYaml .Values.apigateway.controller.service.externalIPs | indent 4 }}
+{{- end }}
+{{- if .Values.apigateway.controller.service.loadBalancerIP }}
+  loadBalancerIP: "{{ .Values.apigateway.controller.service.loadBalancerIP }}"
+{{- end }}
+{{- if .Values.apigateway.controller.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+{{ toYaml .Values.apigateway.controller.service.loadBalancerSourceRanges | indent 4 }}
+{{- end }}
+{{- if and (semverCompare ">=1.7-0" .Capabilities.KubeVersion.GitVersion) (.Values.apigateway.controller.service.externalTrafficPolicy) }}
+  externalTrafficPolicy: "{{ .Values.apigateway.controller.service.externalTrafficPolicy }}"
+{{- end }}
+{{- if and (semverCompare ">=1.7-0" .Capabilities.KubeVersion.GitVersion) (.Values.apigateway.controller.service.healthCheckNodePort) }}
+  healthCheckNodePort: {{ .Values.apigateway.controller.service.healthCheckNodePort }}
+{{- end }}
+  ports:
+    {{- if .Values.apigateway.controller.service.enableHttp }}
+    - name: http
+      port: {{ .Values.apigateway.controller.service.externalPort.http }}
+      protocol: TCP
+      targetPort: {{ .Values.apigateway.controller.service.targetPorts.http }}
+      {{- if (eq .Values.global.apigateway.apigatewayNginxSb.type "NodePort") }}
+      nodePort: {{ .Values.global.apigateway.apigatewayNginxSb.nodePorts.http }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.apigateway.controller.service.enableHttps }}
+    - name: https
+      port: {{ .Values.apigateway.controller.service.externalPort.https }}
+      protocol: TCP
+      targetPort: {{ .Values.apigateway.controller.service.targetPorts.https }}
+      {{- if (eq .Values.global.apigateway.apigatewayNginxSb.type "NodePort" ) }}
+      nodePort: {{ .Values.global.apigateway.apigatewayNginxSb.nodePorts.https }}
+      {{- end }}
+    {{- end }}
+  {{- range $key, $value := .Values.apigateway.tcp }}
+    - name: "{{ $key }}-tcp"
+      port: {{ $key }}
+      protocol: TCP
+      targetPort: "{{ $key }}-tcp"
+  {{- end }}
+  {{- range $key, $value := .Values.apigateway.udp }}
+    - name: "{{ $key }}-udp"
+      port: {{ $key }}
+      protocol: UDP
+      targetPort: "{{ $key }}-udp"
+  {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+    app.ingress.class: {{ .Values.apigateway.controller.ingressClass3 }} #sb-external
+    app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+    app: {{ template "apigateway.name" . }}
+    component: "{{ .Values.apigateway.controller.name }}"
+    release: {{ .Release.Name }}
+  type: "{{ .Values.global.apigateway.apigatewayNginxSb.type }}"

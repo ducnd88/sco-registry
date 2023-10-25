@@ -1,0 +1,19 @@
+{{- if and .Values.apigateway.clusterRbac.create .Values.apigateway.controller.scope.enabled -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.fullname" . }}-scoped
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "apigateway.fullname" . }}-scoped
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "apigateway.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end -}}

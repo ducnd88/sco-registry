@@ -1,0 +1,35 @@
+##All E2EO's Mandatory App/services value should go here
+
+## Optional array of imagePullSecrets containing private registry credentials
+## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+global:
+  imagePullSecret:
+    create: true
+    name: infraregistrykey
+    encodedsecret: ew0KICAgICAgICAiYXV0aHMiOiB7DQogICAgICAgICAgICAgICAgImRvY2tlci1yZXBvc2l0b3J5OjgwODIiOiB7DQogICAgICAgICAgICAgICAgICAgICAgICAiYXV0aCI6ICJZV1J0YVc0NllXUnRhVzR4TWpNPSINCiAgICAgICAgICAgICAgICB9DQogICAgICAgIH0NCn0=
+
+  registry: docker-repository:8082
+
+  apigateway:
+    apigatewayNginxNb:
+      type: NodePort
+      nodePorts:
+        http: 32080
+        https: 32443
+    apigatewayNginxSb:
+      type: ClusterIP
+      nodePorts:
+        http: 30011
+        https: 30012
+  nodeSelector:
+    install: sco
+  dashboard:
+    type: ClusterIP
+  #  nodePort: 30006
+
+#PaaS Apps
+api-gateway-nginx:
+  enabled: true
+
+registrycleanup:
+  enabled: false

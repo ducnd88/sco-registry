@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name:  {{ .Values.configMap.name }}
+data:
+  COMMAND: /bin/registry garbage-collect /etc/docker/registry/config.yml
+  LABEL: app=docker-registry,release=e2eo-infra-paas-registry

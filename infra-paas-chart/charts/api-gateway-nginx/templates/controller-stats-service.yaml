@@ -1,0 +1,40 @@
+{{- if .Values.apigateway.controller.stats.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+{{- if .Values.apigateway.controller.stats.service.annotations }}
+  annotations:
+  {{- range $key, $value := .Values.apigateway.controller.stats.service.annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
+  labels:
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    component: "{{ .Values.apigateway.controller.name }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.controller.fullname" . }}-stats
+spec:
+  clusterIP: "{{ .Values.apigateway.controller.stats.service.clusterIP }}"
+{{- if .Values.apigateway.controller.stats.service.externalIPs }}
+  externalIPs:
+{{ toYaml .Values.apigateway.controller.stats.service.externalIPs | indent 4 }}
+{{- end }}
+{{- if .Values.apigateway.controller.stats.service.loadBalancerIP }}
+  loadBalancerIP: "{{ .Values.apigateway.controller.stats.service.loadBalancerIP }}"
+{{- end }}
+{{- if .Values.apigateway.controller.stats.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+{{ toYaml .Values.apigateway.controller.stats.service.loadBalancerSourceRanges | indent 4 }}
+{{- end }}
+  ports:
+    - name: stats
+      port: {{ .Values.apigateway.controller.stats.service.servicePort }}
+      targetPort: stats
+  selector:
+    app: {{ template "apigateway.name" . }}
+    component: "{{ .Values.apigateway.controller.name }}"
+    release: {{ .Release.Name }}
+  type: "{{ .Values.apigateway.controller.stats.service.type }}"
+{{- end }}

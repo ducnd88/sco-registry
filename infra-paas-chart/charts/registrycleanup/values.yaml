@@ -1,0 +1,43 @@
+global:
+  imagePullSecret:
+    create: false
+    encodedsecret: ""
+    name: "registrysecret"
+  nodeSelector:
+    install: sco
+  registry: localhost
+
+serviceAccount:
+  create: true
+  name: registry-cleanup-service-acc
+
+Role:
+  create: true
+  name: registry-cleanup-service-acc-role
+
+roleBinding:
+  create: true
+  name: registry-cleanup-service-role-binding
+
+cronJob:
+  create: true
+  name: gr-registry-del
+  expression: "0 03 1 */1 *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+
+volumeMounts:
+  name: run
+
+configMap:
+  name: registry-garbage-cleanup-cm
+
+image:
+  repository: registrycleanup
+  tag: 1.0.0
+  restartPolicy: OnFailure
+
+
+
+

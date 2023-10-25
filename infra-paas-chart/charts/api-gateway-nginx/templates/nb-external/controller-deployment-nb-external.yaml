@@ -1,0 +1,247 @@
+{{- $tag := .Values.apigateway.controller.image.tag1 -}}
+{{- if semverCompare ">=1.19.0-0" .Capabilities.KubeVersion.GitVersion }}
+{{- $tag = .Values.apigateway.controller.image.tag2 -}}
+{{- end }}
+{{- if eq .Values.apigateway.controller.kind "Deployment" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+    app.ingress.class: {{ .Values.apigateway.controller.ingressClass2 }}
+    app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    component: "{{ .Values.apigateway.controller.name }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.controller.fullname" . }}-nb
+spec:
+  replicas: {{ .Values.apigateway.controller.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+      app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+      app.ingress.class: {{ .Values.apigateway.controller.ingressClass2 }}
+  revisionHistoryLimit: {{ .Values.apigateway.revisionHistoryLimit }}
+  strategy:
+{{ toYaml .Values.apigateway.controller.updateStrategy | indent 4 }}
+  minReadySeconds: {{ .Values.apigateway.controller.minReadySeconds }}
+  template:
+    metadata:
+      {{- if .Values.apigateway.controller.nb.podAnnotations }}
+      annotations:
+      {{- range $key, $value := .Values.apigateway.controller.nb.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+      {{- end }}
+      labels:
+        app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+        app.ingress.class: {{ .Values.apigateway.controller.ingressClass2 }}
+        app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+        app: {{ template "apigateway.name" . }}
+        component: "{{ .Values.apigateway.controller.name }}"
+        release: {{ .Release.Name }}
+        {{- if .Values.apigateway.controller.podLabels }}
+{{ toYaml .Values.apigateway.controller.podLabels | indent 8 }}
+        {{- end }}
+    spec:
+      dnsPolicy: {{ .Values.apigateway.controller.dnsPolicy }}
+      {{- if .Values.global.imagePullSecret.create }}
+      imagePullSecrets:
+        - name: {{ .Release.Name }}-{{ .Values.global.imagePullSecret.name}}
+      {{- end }}
+{{- if .Values.apigateway.controller.priorityClassName }}
+      priorityClassName: "{{ .Values.apigateway.controller.priorityClassName }}"
+{{- end }}
+      containers:
+        - name: {{ template "apigateway.name" . }}-{{ .Values.apigateway.controller.name }}-nb
+          image: "{{ .Values.global.registry }}/{{ .Values.apigateway.controller.image.repository }}:{{ $tag }}"
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          {{- if .Values.apigateway.controller.lifecycle }}
+          lifecycle:
+{{ toYaml .Values.apigateway.controller.lifecycle | indent 12 }}
+          {{- end }}
+          args:
+            - /nginx-ingress-controller
+            - --default-backend-service={{ if .Values.apigateway.defaultBackend.enabled }}{{ .Release.Namespace }}/{{ template "apigateway.defaultBackend.fullname" . }}{{ else }}{{ .Values.apigateway.controller.defaultBackendService }}{{ end }}
+          {{- if and (semverCompare ">=0.9.0-beta.1" $tag) .Values.apigateway.controller.publishService.enabled }}
+            - --publish-service={{ template "apigateway.controller.publishServicePath" . }}
+          {{- end }}
+          {{- if (semverCompare ">=0.9.0-beta.1" $tag) }}
+            - --election-id={{ .Values.apigateway.controller.electionID }}-nb-leader
+          {{- end }}
+          {{- if (semverCompare ">=0.9.0-beta.1" $tag) }}
+            - --ingress-class={{ .Values.apigateway.controller.ingressClass2 }} #nb-external
+          {{- end }}
+          {{- if (semverCompare ">=1.0.0-beta.1" $tag) }}
+            - --controller-class=default/{{ .Values.apigateway.controller.ingressClass2 }} #nb-class
+          {{- end }}
+          {{- if (semverCompare ">=0.9.0-beta.1" $tag) }}
+            - --configmap={{ .Release.Namespace }}/nginx-configuration-nb
+          {{- else }}
+            - --nginx-configmap={{ .Release.Namespace }}/{{ template "apigateway.controller.fullname" . }}-nb
+          {{- end }}
+            - --tcp-services-configmap={{ .Release.Namespace }}/tcp-services-nb
+            - --udp-services-configmap={{ .Release.Namespace }}/udp-services-nb
+            - --annotations-prefix=nginx.ingress.kubernetes.io
+          {{- if .Values.apigateway.controller.scope.enabled }}
+            - --watch-namespace={{ default .Release.Namespace .Values.apigateway.controller.scope.namespace }}
+          {{- end }}
+          {{- range $key, $value := .Values.apigateway.controller.extraArgs }}
+            {{- if $value }}
+            - --{{ $key }}={{ $value }}
+            {{- else }}
+            - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          {{- if (semverCompare ">=0.16.0" $tag) }}
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+                drop:
+                - ALL
+                add:
+                - NET_BIND_SERVICE
+            runAsNonRoot: true
+            runAsUser: {{ .Values.apigateway.controller.image.runAsUser }}
+            #runAsGroup: {{ .Values.apigateway.controller.image.runAsUser }}
+            {{- if (semverCompare ">= 1.25.0-0" .Capabilities.KubeVersion.GitVersion) }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+            #readOnlyRootFilesystem: true
+          {{- end }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          {{- if .Values.apigateway.controller.extraEnvs }}
+{{ toYaml .Values.apigateway.controller.extraEnvs | indent 12 }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.apigateway.controller.livenessProbe.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.apigateway.controller.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.apigateway.controller.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.apigateway.controller.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.apigateway.controller.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.apigateway.controller.livenessProbe.failureThreshold }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          {{- if .Values.apigateway.controller.stats.enabled }}
+            - name: stats
+              containerPort: 18080
+              protocol: TCP
+            {{- if .Values.apigateway.controller.metrics.enabled }}
+            - name: metrics
+              containerPort: 10254
+              protocol: TCP
+            {{- end }}
+          {{- end }}
+          {{- range $key, $value := .Values.apigateway.tcp }}
+            - name: "{{ $key }}-tcp"
+              containerPort: {{ $key }}
+              protocol: TCP
+          {{- end }}
+          {{- range $key, $value := .Values.apigateway.udp }}
+            - name: "{{ $key }}-udp"
+              containerPort: {{ $key }}
+              protocol: UDP
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.apigateway.controller.readinessProbe.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.apigateway.controller.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.apigateway.controller.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.apigateway.controller.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.apigateway.controller.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.apigateway.controller.readinessProbe.failureThreshold }}
+{{- if (or .Values.apigateway.controller.customTemplate.configMapName .Values.apigateway.controller.extraVolumeMounts) }}
+          volumeMounts:
+{{- end }}
+{{- if .Values.apigateway.controller.customTemplate.configMapName }}
+            - mountPath: /etc/nginx/template
+              name: nginx-template-volume
+              readOnly: true
+{{- end }}
+{{- if .Values.apigateway.controller.extraVolumeMounts }}
+{{ toYaml .Values.apigateway.controller.extraVolumeMounts | indent 12}}
+{{- end }}
+          resources:
+{{ toYaml .Values.apigateway.nbcontroller.resources | indent 12 }}
+{{- if .Values.apigateway.controller.extraContainers }}
+{{ toYaml .Values.apigateway.controller.extraContainers | indent 8}}
+{{- end }}
+{{- if .Values.multusConfiguration }}
+        - image: "{{ .Values.global.registry }}/{{ .Values.multusImage.ipSetter.repository }}:{{ .Values.multusImage.ipSetter.tag }}"
+          imagePullPolicy: IfNotPresent
+          name: ipsetter
+          env:
+            - name: ADDRESS
+              value: "{{ .Values.multusConfiguration.nbAddress }}"
+            - name: PREFIX
+              value: "{{ .Values.multusConfiguration.nbPrefix }}"
+            - name: GATEWAY
+              value: "{{ .Values.multusConfiguration.nbGateway }}"
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+        - args:
+            - --election={{ template "apigateway.controller.fullname" . }}-nb
+            - --http=0.0.0.0:4040
+            - --election-namespace={{ .Release.Namespace }}
+            - --ttl=5s
+          image: "{{ .Values.global.registry }}/{{ .Values.multusImage.leaderElector.repository }}:{{ .Values.multusImage.leaderElector.tag }}"
+          imagePullPolicy: IfNotPresent
+          name: leader-elector
+{{- end }}
+{{- if .Values.apigateway.controller.extraInitContainers }}
+      initContainers:
+{{ toYaml .Values.apigateway.controller.extraInitContainers | indent 8}}
+{{- end }}
+      hostNetwork: {{ .Values.apigateway.controller.hostNetwork }}
+    {{- if .Values.global.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.global.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.apigateway.controller.tolerations }}
+      tolerations:
+{{ toYaml .Values.apigateway.controller.tolerations | indent 8 }}
+    {{- end }}
+    {{- if .Values.apigateway.controller.affinity }}
+      affinity:
+{{ toYaml .Values.apigateway.controller.affinity | indent 8 }}
+    {{- end }}
+      serviceAccountName: {{ template "apigateway.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 60
+{{- if (or .Values.apigateway.controller.customTemplate.configMapName .Values.apigateway.controller.extraVolumes) }}
+      volumes:
+{{- end }}
+{{- if .Values.apigateway.controller.customTemplate.configMapName }}
+        - name: nginx-template-volume
+          configMap:
+            name: {{ .Values.apigateway.controller.customTemplate.configMapName }}
+            items:
+            - key: {{ .Values.apigateway.controller.customTemplate.configMapKey }}
+              path: nginx.tmpl
+{{- end }}
+{{- if .Values.apigateway.controller.extraVolumes }}
+{{ toYaml .Values.apigateway.controller.extraVolumes | indent 8}}
+{{- end }}
+{{- end }}

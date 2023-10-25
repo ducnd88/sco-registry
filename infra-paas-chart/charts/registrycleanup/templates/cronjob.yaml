@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name:  {{ .Values.cronJob.name }}
+  labels:
+    app: {{ .Values.cronJob.name }}
+    tier: jobs
+spec:
+  schedule: {{ .Values.cronJob.expression }}
+  successfulJobsHistoryLimit: {{  .Values.cronJob.successfulJobsHistoryLimit  }}
+  failedJobsHistoryLimit: {{  .Values.cronJob.failedJobsHistoryLimit  }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ .Values.cronJob.name }}
+            image: "{{ .Values.global.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            command: []
+            imagePullPolicy: Always
+            env:
+              - name: MY_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: MY_POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+            envFrom:
+              - configMapRef:
+                 name: {{ .Values.configMap.name }}
+          serviceAccountName:  {{  .Values.serviceAccount.name  }}
+          restartPolicy: {{ .Values.image.restartPolicy }}
+          volumes:
+           - name: {{ .Values.volumeMounts.name }}
+             configMap:
+               name: {{ .Values.configMap.name }}

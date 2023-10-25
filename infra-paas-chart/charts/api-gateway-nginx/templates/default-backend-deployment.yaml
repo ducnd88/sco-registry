@@ -1,0 +1,98 @@
+{{- if .Values.apigateway.defaultBackend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+    app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    component: "{{ .Values.apigateway.defaultBackend.name }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.defaultBackend.fullname" . }}
+spec:
+  replicas: {{ .Values.apigateway.defaultBackend.replicaCount }}
+  revisionHistoryLimit: {{ .Values.apigateway.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: {{ template "apigateway.name" . }}
+      component: "{{ .Values.apigateway.defaultBackend.name }}"
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+    {{- if .Values.apigateway.defaultBackend.podAnnotations }}
+      annotations:
+      {{- range $key, $value := .Values.apigateway.defaultBackend.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+    {{- end }}
+      labels:
+        app: {{ template "apigateway.name" . }}
+        component: "{{ .Values.apigateway.defaultBackend.name }}"
+        release: {{ .Release.Name }}
+        {{- if .Values.apigateway.defaultBackend.podLabels }}
+{{ toYaml .Values.apigateway.defaultBackend.podLabels | indent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.global.imagePullSecret.create }}
+      imagePullSecrets:
+        - name: {{ .Release.Name }}-{{ .Values.global.imagePullSecret.name}}
+      {{- end }}
+{{- if .Values.apigateway.defaultBackend.priorityClassName }}
+      priorityClassName: "{{ .Values.apigateway.defaultBackend.priorityClassName }}"
+{{- end }}
+      containers:
+        - name: {{ template "apigateway.name" . }}-{{ .Values.apigateway.defaultBackend.name }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: {{ .Values.apigateway.controller.image.runAsUser }}
+            runAsGroup: {{ .Values.apigateway.controller.image.runAsUser }}
+            {{- if (semverCompare ">= 1.25.0-0" .Capabilities.KubeVersion.GitVersion) }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+            readOnlyRootFilesystem: true
+          image: "{{ .Values.global.registry }}/{{ .Values.apigateway.defaultBackend.image.repository }}:{{ .Values.apigateway.defaultBackend.image.tag }}"
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          args:
+          {{- range $key, $value := .Values.apigateway.defaultBackend.extraArgs }}
+            {{- if $value }}
+            - --{{ $key }}={{ $value }}
+            {{- else }}
+            - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.apigateway.defaultBackend.port }}
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          ports:
+            - name: http
+              containerPort: {{ .Values.apigateway.defaultBackend.port }}
+              protocol: TCP
+          resources:
+{{ toYaml .Values.apigateway.defaultBackend.resources | indent 12 }}
+    {{- if .Values.global.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.global.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.apigateway.defaultBackend.tolerations }}
+      tolerations:
+{{ toYaml .Values.apigateway.defaultBackend.tolerations | indent 8 }}
+    {{- end }}
+    {{- if .Values.apigateway.defaultBackend.affinity }}
+      affinity:
+{{ toYaml .Values.apigateway.defaultBackend.affinity | indent 8 }}
+    {{- end }}
+      terminationGracePeriodSeconds: 60
+{{- end }}
+      securityContext: {{- omit .Values.securityContext "enabled" | toYaml | nindent 8 }}
+        {{- if (semverCompare ">= 1.25.0-0" .Capabilities.KubeVersion.GitVersion) }}
+        seccompProfile:
+          type: RuntimeDefault
+        {{- end }}
+      serviceAccountName: {{ template "apigateway.serviceAccountName" . }}

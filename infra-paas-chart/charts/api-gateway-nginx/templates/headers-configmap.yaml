@@ -1,0 +1,14 @@
+{{- if .Values.apigateway.controller.headers }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    component: "{{ .Values.apigateway.controller.name }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.fullname" . }}-custom-headers
+data:
+{{ toYaml .Values.apigateway.controller.headers | indent 2 }}
+{{- end }}

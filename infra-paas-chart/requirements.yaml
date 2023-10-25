@@ -1,0 +1,15 @@
+dependencies:
+  - name: api-gateway-nginx
+    version: 0.24.1
+    repository: '@local'
+    condition: api-gateway-nginx.enabled,global.api-gateway-nginx.enabled
+    tags:
+      - api-gateway
+      - paas
+
+  - name: registrycleanup
+    version: 1.0.0
+    repository: "file://./charts/registrycleanup"
+    condition: registrycleanup.enabled,global.registrycleanup.enabled
+    tags:
+      - registrycleanup

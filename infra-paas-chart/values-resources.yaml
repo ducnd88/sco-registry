@@ -1,0 +1,28 @@
+api-gateway-nginx:
+  apigateway:
+    nbcontroller:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 1024Mi
+
+    sbcontroller:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 1024Mi
+
+    defaultBackend:
+      resources:
+        limits:
+          cpu: 10m
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 128Mi

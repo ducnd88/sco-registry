@@ -1,0 +1,43 @@
+{{- if .Values.apigateway.defaultBackend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+{{- if .Values.apigateway.defaultBackend.service.annotations }}
+  annotations:
+  {{- range $key, $value := .Values.apigateway.defaultBackend.service.annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+    app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    component: "{{ .Values.apigateway.defaultBackend.name }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.defaultBackend.fullname" . }}
+spec:
+  clusterIP: "{{ .Values.apigateway.defaultBackend.service.clusterIP }}"
+{{- if .Values.apigateway.defaultBackend.service.externalIPs }}
+  externalIPs:
+{{ toYaml .Values.apigateway.defaultBackend.service.externalIPs | indent 4 }}
+{{- end }}
+{{- if .Values.apigateway.defaultBackend.service.loadBalancerIP }}
+  loadBalancerIP: "{{ .Values.apigateway.defaultBackend.service.loadBalancerIP }}"
+{{- end }}
+{{- if .Values.apigateway.defaultBackend.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+{{ toYaml .Values.apigateway.defaultBackend.service.loadBalancerSourceRanges | indent 4 }}
+{{- end }}
+  ports:
+    - name: http
+      port: {{ .Values.apigateway.defaultBackend.service.servicePort }}
+      protocol: TCP
+      targetPort: http
+  selector:
+    app: {{ template "apigateway.name" . }}
+    component: "{{ .Values.apigateway.defaultBackend.name }}"
+    release: {{ .Release.Name }}
+  type: "{{ .Values.apigateway.defaultBackend.service.type }}"
+{{- end }}

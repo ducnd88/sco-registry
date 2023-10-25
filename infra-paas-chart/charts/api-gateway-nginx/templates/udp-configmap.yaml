@@ -1,0 +1,14 @@
+{{- if .Values.apigateway.udp }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    component: "{{ .Values.apigateway.controller.name }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.fullname" . }}-udp
+data:
+{{ toYaml .Values.apigateway.udp | indent 2 }}
+{{- end }}

@@ -1,0 +1,21 @@
+{{- if .Values.apigateway.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ .Values.apigateway.controller.label }}
+    app.kubernetes.io/part-of: {{ .Values.apigateway.controller.label }}
+    app: {{ template "apigateway.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "apigateway.fullname" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ template "apigateway.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "apigateway.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end -}}
